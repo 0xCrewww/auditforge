@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AuditForge — Smart Contract Security Audit</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --border: #1e1e2e;
+            --text: #e0e0e8;
+            --muted: #8888a0;
+            --accent: #6c5ce7;
+            --accent-light: #a29bfe;
+            --danger: #ff6b6b;
+            --warning: #ffa502;
+            --success: #2ed573;
+            --info: #54a0ff;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            padding: 3rem 0 2rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: var(--muted);
+            font-size: 1.1rem;
+        }
+
+        .agent-badges {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .badge {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 0.3rem 0.8rem;
+            font-size: 0.75rem;
+            color: var(--accent-light);
+        }
+
+        .upload-section {
+            background: var(--surface);
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            transition: border-color 0.3s;
+            cursor: pointer;
+        }
+
+        .upload-section:hover,
+        .upload-section.dragover {
+            border-color: var(--accent);
+        }
+
+        .upload-section h2 {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-section p {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 1rem;
+        }
+
+        .btn:hover {
+            background: var(--accent-light);
+        }
+
+        .btn:disabled {
+            background: var(--border);
+            cursor: not-allowed;
+        }
+
+        .status-bar {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: none;
+        }
+
+        .status-bar.active { display: block; }
+
+        .progress-container {
+            margin-top: 1rem;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent-light));
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .agents-status {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .agent-chip {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+            color: var(--muted);
+            transition: all 0.3s;
+        }
+
+        .agent-chip.running {
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+
+        .agent-chip.done {
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .report-section {
+            display: none;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .report-section.active { display: block; }
+
+        .report-content {
+            line-height: 1.8;
+            font-size: 0.95rem;
+        }
+
+        .report-content h1 { font-size: 1.8rem; margin: 2rem 0 1rem; color: var(--accent-light); }
+        .report-content h2 { font-size: 1.4rem; margin: 1.5rem 0 0.75rem; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+        .report-content h3 { font-size: 1.1rem; margin: 1rem 0 0.5rem; color: var(--text); }
+        .report-content code { background: var(--bg); padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.85rem; }
+        .report-content pre { background: var(--bg); padding: 1rem; border-radius: 8px; overflow-x: auto; margin: 1rem 0; border: 1px solid var(--border); }
+        .report-content pre code { background: none; padding: 0; }
+        .report-content table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        .report-content th, .report-content td { padding: 0.5rem; border: 1px solid var(--border); text-align: left; }
+        .report-content th { background: var(--bg); }
+        .report-content ul, .report-content ol { padding-left: 1.5rem; margin: 0.5rem 0; }
+        .report-content li { margin: 0.25rem 0; }
+
+        .stats-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-light);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--muted);
+            margin-top: 0.25rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            color: var(--muted);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border);
+        }
+
+        footer a {
+            color: var(--accent-light);
+            text-decoration: none;
+        }
+
+        @media (max-width: 600px) {
+            .container { padding: 1rem; }
+            header h1 { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚒️ AuditForge</h1>
+            <p>Multi-Agent Smart Contract Security Audit Pipeline</p>
+            <div class="agent-badges">
+                <span class="badge">🔍 Vulnerability Scanner</span>
+                <span class="badge">🧠 Logic Auditor</span>
+                <span class="badge">⛽ Gas Analyst</span>
+                <span class="badge">📋 Compliance Checker</span>
+                <span class="badge">📄 Report Generator</span>
+                <span class="badge">🔗 Synthesis Agent</span>
+            </div>
+        </header>
+
+        <div class="upload-section" id="dropZone">
+            <h2>Upload Solidity Contract</h2>
+            <p>Drag & drop a .sol file or click to browse</p>
+            <p style="margin-top: 0.5rem; font-size: 0.8rem;">Max 500KB • .sol files only</p>
+            <input type="file" id="fileInput" accept=".sol,.txt">
+            <button class="btn" id="uploadBtn" disabled>Select File</button>
+        </div>
+
+        <div class="status-bar" id="statusBar">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong id="statusTitle">Analyzing contract...</strong>
+                <span id="elapsedTime" style="color: var(--muted); font-size: 0.85rem;">0s</span>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+            <div class="agents-status" id="agentsStatus">
+                <span class="agent-chip" data-agent="vuln">🔍 Vulnerability</span>
+                <span class="agent-chip" data-agent="logic">🧠 Logic</span>
+                <span class="agent-chip" data-agent="gas">⛽ Gas</span>
+                <span class="agent-chip" data-agent="compliance">📋 Compliance</span>
+                <span class="agent-chip" data-agent="report">📄 Report</span>
+                <span class="agent-chip" data-agent="synthesis">🔗 Synthesis</span>
+            </div>
+        </div>
+
+        <div class="report-section" id="reportSection">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2 style="margin: 0;">Audit Report</h2>
+                <button class="btn" onclick="downloadReport()" style="margin: 0; padding: 0.5rem 1rem; font-size: 0.85rem;">⬇ Download .md</button>
+            </div>
+            <div class="report-content" id="reportContent"></div>
+        </div>
+
+        <div class="stats-section">
+            <h2>📊 Pipeline Statistics</h2>
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <div class="stat-value" id="statCalls">-</div>
+                    <div class="stat-label">LLM Calls</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statTokens">-</div>
+                    <div class="stat-label">Total Tokens</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statPrompt">-</div>
+                    <div class="stat-label">Prompt Tokens</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statCompletion">-</div>
+                    <div class="stat-label">Completion Tokens</div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Built with FastAPI + <a href="https://github.com/0xCrewww/auditforge">AuditForge</a> • Powered by MiMo</p>
+        </footer>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        let currentAuditId = null;
+        let pollInterval = null;
+        let startTimestamp = null;
+        let elapsedInterval = null;
+        let reportMarkdown = '';
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const statusBar = document.getElementById('statusBar');
+        const statusTitle = document.getElementById('statusTitle');
+        const progressFill = document.getElementById('progressFill');
+        const reportSection = document.getElementById('reportSection');
+        const reportContent = document.getElementById('reportContent');
+
+        // Drag & drop
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('dragover'); });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+        dropZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files[0]) handleFile(fileInput.files[0]);
+        });
+        uploadBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (fileInput.files[0]) handleFile(fileInput.files[0]);
+            else fileInput.click();
+        });
+
+        function handleFile(file) {
+            if (!file.name.endsWith('.sol')) {
+                alert('Please upload a .sol Solidity file');
+                return;
+            }
+            uploadBtn.textContent = file.name;
+            uploadBtn.disabled = false;
+            submitAudit(file);
+        }
+
+        async function submitAudit(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            statusBar.classList.add('active');
+            reportSection.classList.remove('active');
+            statusTitle.textContent = 'Submitting contract...';
+            progressFill.style.width = '5%';
+
+            // Reset agent chips
+            document.querySelectorAll('.agent-chip').forEach(c => { c.className = 'agent-chip'; });
+
+            startTimestamp = Date.now();
+            if (elapsedInterval) clearInterval(elapsedInterval);
+            elapsedInterval = setInterval(() => {
+                document.getElementById('elapsedTime').textContent = Math.floor((Date.now() - startTimestamp) / 1000) + 's';
+            }, 1000);
+
+            try {
+                const resp = await fetch(API_BASE + '/audit', { method: 'POST', body: formData });
+                const data = await resp.json();
+
+                if (!resp.ok) {
+                    statusTitle.textContent = 'Error: ' + (data.detail || 'Unknown error');
+                    return;
+                }
+
+                currentAuditId = data.audit_id;
+                statusTitle.textContent = 'Audit running — 5 agents analyzing...';
+                progressFill.style.width = '10%';
+
+                // Start polling
+                if (pollInterval) clearInterval(pollInterval);
+                pollInterval = setInterval(pollAudit, 3000);
+
+            } catch (err) {
+                statusTitle.textContent = 'Network error: ' + err.message;
+            }
+        }
+
+        async function pollAudit() {
+            if (!currentAuditId) return;
+
+            try {
+                const resp = await fetch(API_BASE + '/audit/' + currentAuditId);
+                const data = await resp.json();
+
+                if (data.status === 'completed') {
+                    clearInterval(pollInterval);
+                    clearInterval(elapsedInterval);
+                    statusTitle.textContent = '✅ Audit completed!';
+                    progressFill.style.width = '100%';
+                    document.querySelectorAll('.agent-chip').forEach(c => c.classList.add('done'));
+                    showReport(data.report);
+                } else if (data.status === 'failed') {
+                    clearInterval(pollInterval);
+                    clearInterval(elapsedInterval);
+                    statusTitle.textContent = '❌ Audit failed';
+                    progressFill.style.width = '100%';
+                    reportContent.innerHTML = '<p style="color: var(--danger);">Audit failed: ' + escapeHtml(data.error || 'Unknown error') + '</p>';
+                    reportSection.classList.add('active');
+                } else {
+                    // Still running — update progress simulation
+                    const elapsed = (Date.now() - startTimestamp) / 1000;
+                    const progress = Math.min(90, 10 + elapsed * 0.5);
+                    progressFill.style.width = progress + '%';
+
+                    // Simulate agent progress
+                    if (elapsed > 5) document.querySelector('[data-agent="vuln"]').classList.add('running');
+                    if (elapsed > 8) document.querySelector('[data-agent="logic"]').classList.add('running');
+                    if (elapsed > 10) {
+                        document.querySelector('[data-agent="vuln"]').classList.remove('running');
+                        document.querySelector('[data-agent="vuln"]').classList.add('done');
+                    }
+                    if (elapsed > 15) {
+                        document.querySelector('[data-agent="logic"]').classList.remove('running');
+                        document.querySelector('[data-agent="logic"]').classList.add('done');
+                    }
+                }
+            } catch (err) {
+                console.error('Poll error:', err);
+            }
+        }
+
+        function showReport(markdown) {
+            reportMarkdown = markdown;
+            reportContent.innerHTML = renderMarkdown(markdown);
+            reportSection.classList.add('active');
+            reportSection.scrollIntoView({ behavior: 'smooth' });
+            loadStats();
+        }
+
+        function renderMarkdown(md) {
+            // Simple markdown to HTML
+            let html = escapeHtml(md);
+            // Code blocks
+            html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+            // Inline code
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+            // Headers
+            html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+            html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+            html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+            html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+            // Bold
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            // Italic
+            html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            // Lists
+            html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+            html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+            // Tables (basic)
+            html = html.replace(/\|(.+)\|/g, (match) => {
+                const cells = match.split('|').filter(c => c.trim());
+                if (cells.every(c => /^[\s-:]+$/.test(c))) return '';
+                const tag = match.includes('---') ? 'th' : 'td';
+                return '<tr>' + cells.map(c => '<' + tag + '>' + c.trim() + '</' + tag + '>').join('') + '</tr>';
+            });
+            // Paragraphs
+            html = html.replace(/\n\n/g, '</p><p>');
+            html = '<p>' + html + '</p>';
+            html = html.replace(/<p><\/p>/g, '');
+            html = html.replace(/<p>(<h[1-4]>)/g, '$1');
+            html = html.replace(/(<\/h[1-4]>)<\/p>/g, '$1');
+            html = html.replace(/<p>(<pre>)/g, '$1');
+            html = html.replace(/(<\/pre>)<\/p>/g, '$1');
+            html = html.replace(/<p>(<ul>)/g, '$1');
+            html = html.replace(/(<\/ul>)<\/p>/g, '$1');
+            html = html.replace(/<p>(<tr>)/g, '<table>$1');
+            html = html.replace(/(<\/tr>)<\/p>/g, '$1</table>');
+            return html;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function downloadReport() {
+            if (!reportMarkdown) return;
+            const blob = new Blob([reportMarkdown], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'audit-report.md';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function loadStats() {
+            try {
+                const resp = await fetch(API_BASE + '/stats');
+                const data = await resp.json();
+                document.getElementById('statCalls').textContent = data.total_llm_calls || 0;
+                document.getElementById('statTokens').textContent = (data.total_tokens || 0).toLocaleString();
+                document.getElementById('statPrompt').textContent = (data.total_prompt_tokens || 0).toLocaleString();
+                document.getElementById('statCompletion').textContent = (data.total_completion_tokens || 0).toLocaleString();
+            } catch (err) {
+                console.error('Stats error:', err);
+            }
+        }
+
+        // Load stats on page load
+        loadStats();
+    </script>
+</body>
+</html>

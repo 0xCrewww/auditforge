@@ -1,0 +1,36 @@
+{
+  "audit_id": "example-run-001",
+  "filename": "VulnerableToken.sol",
+  "status": "completed",
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-01T00:01:30Z",
+  "estimated_lines": 45,
+  "token_usage": {
+    "total_tokens": 42500,
+    "by_agent": {
+      "vulnerability_scanner": {"calls": 1, "tokens": 6200},
+      "logic_auditor": {"calls": 1, "tokens": 5800},
+      "gas_analyst": {"calls": 1, "tokens": 5100},
+      "compliance_checker": {"calls": 1, "tokens": 5400},
+      "report_generator": {"calls": 1, "tokens": 12000},
+      "synthesis": {"calls": 1, "tokens": 8000}
+    }
+  },
+  "findings_summary": {
+    "critical": 1,
+    "high": 3,
+    "medium": 3,
+    "low": 2,
+    "informational": 1,
+    "total": 10
+  },
+  "agents_executed": [
+    "vulnerability_scanner",
+    "logic_auditor",
+    "gas_analyst",
+    "compliance_checker",
+    "report_generator",
+    "synthesis"
+  ],
+  "note": "This is a sample run output for documentation purposes. Actual output will vary based on the LLM model used."
+}

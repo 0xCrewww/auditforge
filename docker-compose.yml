@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  auditforge:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o}
+      - LLM_MAX_RETRIES=3
+      - LLM_RETRY_BACKOFF=2.0
+      - TOKEN_DB_PATH=/data/tokens.db
+      - PORT=8000
+    volumes:
+      - audit-data:/data
+    restart: unless-stopped
+
+volumes:
+  audit-data:
